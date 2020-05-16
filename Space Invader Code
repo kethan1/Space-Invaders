@@ -16,15 +16,15 @@ screen.fill(nblue)
 
 findnew = True
 
-image1 = pygame.image.load("C:/Users/ketha/OneDrive/Pictures/Programming_Images/Space Invaders/space_invader1.png")
+image1 = pygame.image.load("./space_invader1.png")
 image1 = pygame.transform.scale(image1, (80, 60))
-image2 = pygame.image.load("C:/Users/ketha/OneDrive/Pictures/Programming_Images/Space Invaders/space_invader2.png")
+image2 = pygame.image.load("./space_invader2.png")
 image2 = pygame.transform.scale(image2, (80, 60))
-image3 = pygame.image.load("C:/Users/ketha/OneDrive/Pictures/Programming_Images/Space Invaders/space_invader3.png")
+image3 = pygame.image.load("./space_invader3.png")
 image3 = pygame.transform.scale(image3, (80, 60))
-image4 = pygame.image.load("C:/Users/ketha/OneDrive/Pictures/Programming_Images/Space Invaders/Bullet.png")
+image4 = pygame.image.load("./Bullet.png")
 image4 = pygame.transform.scale(image4, (10, 40))
-image5 = pygame.image.load("C:/Users/ketha/OneDrive/Pictures/Programming_Images/Space Invaders/spaceship.png")
+image5 = pygame.image.load("./spaceship.png")
 image5 = pygame.transform.scale(image5, (100, 100))
 image6 = pygame.transform.flip(image4, False, True)
 
