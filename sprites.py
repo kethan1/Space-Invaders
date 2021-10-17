@@ -56,11 +56,11 @@ class Player(Sprite):
 
 
 class StandardAlien(Sprite):
-    def __init__(self, screen, x, y, image, bullet_image, CELLSIZE=50, damage=10, health=10, bullets=[], bullet_speed=1):
+    def __init__(self, screen, x, y, image, bullet_image, CELLSIZE=50, damage=10, health=10, bullet_speed=5):
         super().__init__(screen, x, y, image, CELLSIZE, speed=None)
         self.damage = damage
         self.health = health
-        self.bullets = bullets
+        self.bullets = []
         self.bullet_image = bullet_image
         self.bullet_speed = bullet_speed
         self.WIDTH = screen.get_width()
