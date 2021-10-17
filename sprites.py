@@ -24,7 +24,7 @@ class Sprite:
 
 
 class Player(Sprite):
-    def __init__(self, screen, x, y, image, bullet_image, CELLSIZE=50, speed=5, damage=10, health=100, bullet_speed=5):
+    def __init__(self, screen, x, y, image, bullet_image, CELLSIZE=50, speed=5, damage=10, health=30, bullet_speed=5):
         super().__init__(screen, x, y, image, CELLSIZE, speed)
         self.damage = damage
         self.health = health
@@ -49,6 +49,10 @@ class Player(Sprite):
                 self.bullets.remove(bullet)
                 return True
         return False
+
+    def show_health(self, font):
+        text = font.render(f"Health: {self.health}", True, (255, 255, 255))
+        self.screen.blit(text, (5, 5))
 
 
 class StandardAlien(Sprite):
@@ -111,13 +115,13 @@ class Game:
         already_reversed = False
         for row in self.current_level_data.aliens:
             for alien in row:
-                if alien.x < 0 or alien.x > self.WIDTH - self.CELLSIZE:
+                if alien.y >= self.HEIGHT - self.CELLSIZE:
+                    self.gameover = True
+                if alien.x <= 0 or alien.x >= self.WIDTH - self.CELLSIZE:
                     if not already_reversed:
                         self.current_level_data.alien_speed = -self.current_level_data.alien_speed
                     already_reversed = True
                     break
-                if alien.y >= self.HEIGHT - self.CELLSIZE:
-                    self.gameover = True
             if already_reversed:
                 break
 
