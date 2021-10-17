@@ -66,7 +66,10 @@ class StandardAlien(Sprite):
         self.WIDTH = screen.get_width()
 
     def shoot(self):
-        self.bullets.append(Bullet(screen=self.screen, x=self.x, y=self.y - self.CELLSIZE / 2, image=self.bullet_image, speed=self.bullet_speed))
+        self.bullets.append(
+            Bullet(screen=self.screen, x=self.x, y=self.y + self.CELLSIZE / 2,
+                   image=self.bullet_image, speed=self.bullet_speed)
+        )
 
     def move_down_row(self):
         self.y += self.CELLSIZE
@@ -130,6 +133,8 @@ class Game:
             for alien in row.copy():
                 if self.player.check_collision(alien):
                     row.remove(alien)
+                    if row == []:
+                        self.current_level_data.aliens.remove([])
                     continue
                 alien.move(self.current_level_data.alien_speed)
                 alien.draw()
