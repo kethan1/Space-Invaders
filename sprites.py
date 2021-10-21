@@ -1,11 +1,12 @@
 import random
+import datetime
 
 
 class Sprite:
     def __init__(self, screen, x, y, image, CELLSIZE=50, speed=5):
         self.x = x
         self.y = y
-        self.image = image
+        self.image = image.copy()
         self.speed = speed
         self.screen = screen
         self.CELLSIZE = CELLSIZE
@@ -45,7 +46,7 @@ class Player(Sprite):
     def check_collision(self, obj):
         for bullet in self.bullets.copy():
             if obj.x <= bullet.x + 20 <= obj.x + obj.image.get_width() and obj.y <= bullet.y + 20 <= obj.y + obj.image.get_height():
-                obj.health -= self.damage
+                obj.set_health(obj.health - self.damage)
                 self.bullets.remove(bullet)
                 return True
         return False
@@ -55,11 +56,12 @@ class Player(Sprite):
         self.screen.blit(text, (5, 5))
 
 
-class StandardAlien(Sprite):
+class AlienTemplate(Sprite):
     def __init__(self, screen, x, y, image, bullet_image, CELLSIZE=50, damage=10, health=10, bullet_speed=5):
         super().__init__(screen, x, y, image, CELLSIZE, speed=None)
         self.damage = damage
         self.health = health
+        self.full_health = health
         self.bullets = []
         self.bullet_image = bullet_image
         self.bullet_speed = bullet_speed
@@ -92,6 +94,30 @@ class StandardAlien(Sprite):
     def move(self, move_by):
         self.x += move_by
 
+    def set_health(self, health):
+        self.health = health
+        self.image.set_alpha(round((self.health / self.full_health) * 255))
+
+
+class StandardAlien(AlienTemplate):
+    def __init__(self, screen, x, y, image, bullet_image, CELLSIZE=50):
+        super().__init__(screen, x, y, image, bullet_image, damage=10, CELLSIZE=CELLSIZE, health=10, bullet_speed=5)
+
+
+class BeefyAlien(AlienTemplate):
+    def __init__(self, screen, x, y, image, bullet_image, CELLSIZE=50):
+        super().__init__(screen, x, y, image, bullet_image, damage=15, CELLSIZE=CELLSIZE, health=40, bullet_speed=5)
+
+
+class AnnoyingAlien(AlienTemplate):
+    def __init__(self, screen, x, y, image, bullet_image, CELLSIZE=50):
+        super().__init__(screen, x, y, image, bullet_image, damage=5, CELLSIZE=CELLSIZE, health=5, bullet_speed=10)
+
+
+class BossAlien(AlienTemplate):
+    def __init__(self, screen, x, y, image, bullet_image, CELLSIZE=50):
+        super().__init__(screen, x, y, image, bullet_image, damage=30, CELLSIZE=CELLSIZE, health=100, bullet_speed=5)
+
 
 class Bullet(Sprite):
     def move_up(self):
@@ -102,7 +128,7 @@ class Bullet(Sprite):
 
 
 class Game:
-    def __init__(self, screen, player, levels, current_level, font, CELLSIZE=50):
+    def __init__(self, screen, player, levels, current_level, font, small_font, CELLSIZE=50):
         self.screen = screen
         self.player = player
         self.levels = levels
@@ -113,6 +139,7 @@ class Game:
         self.gameover = False
         self.win = False
         self.font = font
+        self.small_font = small_font
 
     def update_aliens(self):
         already_reversed = False
@@ -131,11 +158,11 @@ class Game:
         aliens_copy = self.current_level_data.aliens.copy()
         for index, row in enumerate(aliens_copy):
             for alien in row.copy():
-                if self.player.check_collision(alien):
+                if self.player.check_collision(alien) and alien.health <= 0:
                     row.remove(alien)
                     if row == []:
                         self.current_level_data.aliens.remove([])
-                    continue
+                        continue
                 alien.move(self.current_level_data.alien_speed)
                 alien.draw()
                 if already_reversed:
@@ -153,21 +180,47 @@ class Game:
                 self.current_level += 1
                 self.current_level_data = self.levels[self.current_level]
             else:
+                if not self.gameover:
+                    self.end_level()
                 self.win = True
                 self.gameover = True
 
+    def main_menu(self):
+        self.show("Space Invaders")
+
     def win_screen(self):
-        self.show_center_text("You Won!")
+        self.show_text("You Won!", y=self.HEIGHT / 2 - self.font.size("You Won!")[1])
+        self.show_text(f"Time taken: {self.get_time_taken()}", y=self.HEIGHT / 2)
+
+    def start_level(self):
+        self.player.health = 30
+        self.current_level_data = self.levels[self.current_level]
+        self.start_time = datetime.datetime.now()
+
+    def end_level(self):
+        self.end_time = datetime.datetime.now()
 
     def lose_screen(self):
-        self.show_center_text("You Lost!")
+        self.show_text("You Lost!")
 
-    def show_center_text(self, text: str):
-        self.screen.fill((0, 0, 0))
+    def show_text(self, text: str, x=None, y=None):
         text_obj = self.font.render(text, 1, (255, 255, 255))
-        text_width = text_obj.get_width()
-        text_height = text_obj.get_height()
-        self.screen.blit(text_obj, (self.WIDTH / 2 - text_width / 2, self.HEIGHT / 2 - text_height / 2))
+        text_width, text_height = text_obj.get_width(), text_obj.get_height()
+        if y is None:
+            y = self.HEIGHT / 2 - text_height / 2
+        if x is None:
+            x = self.WIDTH / 2 - text_width / 2
+        self.screen.blit(text_obj, (x, y))
+
+    def get_time_taken(self, end_time=None):
+        if end_time is None:
+            end_time = self.end_time
+        return str((end_time - self.start_time)).split('.')[0]
+
+    def show_time_taken(self):
+        text_obj = self.small_font.render(f"Time Taken: {self.get_time_taken(datetime.datetime.now())}", 1, (255, 255, 255))
+        width = text_obj.get_width()
+        self.screen.blit(text_obj, (self.WIDTH - width - 5, 5))
 
 
 class Level:
