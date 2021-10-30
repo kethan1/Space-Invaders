@@ -1,5 +1,6 @@
 import sys
 import os
+import natsort
 import pygame
 from pygame.locals import *
 from sprites import *
@@ -13,14 +14,15 @@ pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Space Invaders")
 
-player_image = pygame.transform.scale(pygame.image.load("spaceship.png"), (CELLSIZE, CELLSIZE))
-bullet_image = pygame.transform.scale(pygame.image.load("bullet.png"), (CELLSIZE, CELLSIZE))
+player_image = pygame.transform.scale(pygame.image.load("assets/images/spaceship.png"), (CELLSIZE, CELLSIZE))
+bullet_image = pygame.transform.scale(pygame.image.load("assets/images/bullet.png"), (CELLSIZE, CELLSIZE))
 bullet_image2 = pygame.transform.flip(bullet_image, False, True)
-standard_alien_image = pygame.transform.scale(pygame.image.load("alien1.png"), (CELLSIZE, CELLSIZE))
-beefy_alien_image = pygame.transform.scale(pygame.image.load("alien2.png"), (CELLSIZE, CELLSIZE))
-annoying_alien_image = pygame.transform.scale(pygame.image.load("alien3.png"), (CELLSIZE, CELLSIZE))
-boss_alien_image = pygame.transform.scale(pygame.image.load("alien4.png"), (CELLSIZE, CELLSIZE))
-background = pygame.transform.scale(pygame.image.load("background.jpg"), (WIDTH, HEIGHT))
+standard_alien_image = pygame.transform.scale(pygame.image.load("assets/images/aliens/alien1.png"), (CELLSIZE, CELLSIZE))
+beefy_alien_image = pygame.transform.scale(pygame.image.load("assets/images/aliens/alien2.png"), (CELLSIZE, CELLSIZE))
+annoying_alien_image = pygame.transform.scale(pygame.image.load("assets/images/aliens/alien3.png"), (CELLSIZE, CELLSIZE))
+boss_alien_image = pygame.transform.scale(pygame.image.load("assets/images/aliens/alien4.png"), (CELLSIZE, CELLSIZE))
+background = pygame.transform.scale(pygame.image.load("assets/images/background.png"), (WIDTH, HEIGHT)).convert_alpha()
+font_path = "assets/Segoe-UI-Variable-Static-Display.ttf"
 
 
 player = Player(screen=screen, x=WIDTH/2 - CELLSIZE/2, y=HEIGHT - CELLSIZE - 5,
@@ -32,18 +34,20 @@ alien_types = {
     "0": StandardAlien,
     "1": BeefyAlien,
     "2": AnnoyingAlien,
-    "3": BossAlien
+    "3": VeryAnnoyingAlien,
+    "4": BossAlien
 }
 
 alien_images = {
     StandardAlien: standard_alien_image,
     BeefyAlien: beefy_alien_image,
     AnnoyingAlien: annoying_alien_image,
+    VeryAnnoyingAlien: annoying_alien_image,
     BossAlien: boss_alien_image
 }
 
-for file in os.listdir("levels/"):
-    with open(f"levels/{file}") as level1_csv:
+for file in natsort.natsorted(os.listdir("assets/levels/"), alg=natsort.ns.IGNORECASE):
+    with open(f"assets/levels/{file}") as level1_csv:
         level_class_template = []
         for line in level1_csv:
             if line.startswith("#"):
@@ -64,46 +68,48 @@ for file in os.listdir("levels/"):
         levels.append(Level(aliens=level_objs, alien_speed=level_speed))
 
 
-small_font = pygame.font.SysFont("monospace", 20)
-game = Game(screen, player, levels, 0, pygame.font.SysFont("monospace", 50), small_font)
+small_font = pygame.font.Font(font_path, 20)
+large_font = pygame.font.Font(font_path, 50)
+game = Game(screen, player, levels, 0, large_font, small_font)
 
-game.start_level()
 clock = pygame.time.Clock()
 while True:
     clock.tick(60)
     pygame.display.update()
     screen.fill((0, 0, 0))
     screen.blit(background, (0, 0))
-    # for row in range(CELLSIZE, WIDTH + 1, CELLSIZE):
-    #     pygame.draw.line(screen, (255, 255, 255), (row, 0), (row, HEIGHT))
-    #     pygame.draw.line(screen, (255, 255, 255), (0, row), (WIDTH, row))
 
-    game.update_aliens()
-    game.check_if_level_done()
-    game.show_time_taken()
-    player.draw()
-    player.show_bullets()
-    player.show_health(small_font)
+    if game.screen_on == "menu":
+        game.main_menu()
+    elif game.screen_on == "win":
+        game.win_screen()
+    elif game.screen_on == "lose":
+        game.lose_screen()
+    elif game.screen_on == "game":
+        game.update_aliens()
+        game.check_if_level_done()
+        game.show_time_taken()
+        player.draw()
+        player.show_bullets()
+        player.show_health(small_font)
 
-    if game.gameover:
-        screen.fill((0, 0, 0))
-        if game.win:
-            game.win_screen()
-        else:
-            game.lose_screen()
-
-    keys = pygame.key.get_pressed()
-    if keys[K_LEFT]:
-        player.move_left()
-    if keys[K_RIGHT]:
-        player.move_right()
+        keys = pygame.key.get_pressed()
+        if keys[K_LEFT]:
+            player.move_left()
+        if keys[K_RIGHT]:
+            player.move_right()
 
     for event in pygame.event.get():
         if event.type == QUIT:
             pygame.quit()
             sys.exit()
         elif event.type == MOUSEBUTTONDOWN:
-            player.shoot()
+            if game.screen_on == "menu":
+                game.check_menu_buttons(*pygame.mouse.get_pos())
+            elif game.screen_on == "game":
+                player.shoot()
+            elif game.screen_on in ("win", "lose"):
+                game.check_gameover_buttons(*pygame.mouse.get_pos())
         elif event.type == KEYDOWN:
             if event.key == K_SPACE:
                 player.shoot()
