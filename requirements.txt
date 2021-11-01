@@ -1,2 +1,7 @@
 pygame
 natsort
+pyinstaller
+flask
+pymongo[srv]
+Flask-PyMongo
+dotenv
