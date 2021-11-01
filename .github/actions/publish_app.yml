@@ -1,0 +1,61 @@
+name: Build & Publish Electron App
+
+on:
+  push:
+    tags:
+    - '*'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-18.04
+          - macos-10.15
+          - windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14.x"
+      - name: MacOS Fix Network Flakiness
+        shell: bash
+        run: |
+            if [ "$RUNNER_OS" == "macOS" ]; then
+              sudo sysctl -w net.link.generic.system.hwcksum_tx=0
+              sudo sysctl -w net.link.generic.system.hwcksum_rx=0
+            fi
+            
+      - name: Install Dependencies
+        shell: bash
+        run: |
+            pip install -r requirements.txt
+
+      - name: Create Artifacts Output Folder
+        shell: bash
+        run: mkdir Build-Artifacts
+
+      - name: Build App
+        shell: bash
+        run: | 
+            pyinstaller --onefile --noconsole game.py
+            cp -r assets/ dist/assets/
+            cd dist
+            tar.exe -a -cf ../space-invaders.zip * 
+            cd ../
+        
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: space-invaders.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: |
+              space-invaders.zip
