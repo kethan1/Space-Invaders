@@ -24,7 +24,6 @@ boss_alien_image = pygame.transform.scale(pygame.image.load("assets/images/alien
 background = pygame.transform.scale(pygame.image.load("assets/images/background.png"), (WIDTH, HEIGHT)).convert_alpha()
 font_path = "assets/Segoe-UI-Variable-Static-Display.ttf"
 
-
 player = Player(screen=screen, x=WIDTH/2 - CELLSIZE/2, y=HEIGHT - CELLSIZE - 5,
                 image=player_image, bullet_image=bullet_image)
 
@@ -70,7 +69,8 @@ for file in natsort.natsorted(os.listdir("assets/levels/"), alg=natsort.ns.IGNOR
 
 small_font = pygame.font.Font(font_path, 20)
 large_font = pygame.font.Font(font_path, 50)
-game = Game(screen, player, levels, 0, large_font, small_font)
+medium_font = pygame.font.Font(font_path, 27)
+game = Game(screen, player, levels, 0, large_font, small_font, medium_font, background)
 
 clock = pygame.time.Clock()
 while True:
@@ -81,6 +81,10 @@ while True:
 
     if game.screen_on == "menu":
         game.main_menu()
+    elif game.screen_on == "how_to_play":
+        game.how_to_play()
+    elif game.screen_on == "leaderboard":
+        game.leaderboard()
     elif game.screen_on == "win":
         game.win_screen()
     elif game.screen_on == "lose":
@@ -110,6 +114,11 @@ while True:
                 player.shoot()
             elif game.screen_on in ("win", "lose"):
                 game.check_gameover_buttons(*pygame.mouse.get_pos())
+            elif game.screen_on == "how_to_play":
+                game.check_how_to_play_buttons(*pygame.mouse.get_pos())
+            elif game.screen_on == "leaderboard":
+                game.check_leaderboard_buttons(*pygame.mouse.get_pos())
         elif event.type == KEYDOWN:
             if event.key == K_SPACE:
-                player.shoot()
+                if game.screen_on == "game":
+                    player.shoot()

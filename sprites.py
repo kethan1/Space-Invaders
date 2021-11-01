@@ -2,6 +2,11 @@ import random
 import datetime
 import pygame
 import math
+import requests
+import tkinter as tk
+from tkinter import simpledialog
+
+tk.Tk().withdraw()
 
 
 class Sprite:
@@ -156,7 +161,7 @@ class Bullet(Sprite):
 
 
 class Game:
-    def __init__(self, screen, player, levels, current_level, font, small_font, CELLSIZE=50):
+    def __init__(self, screen, player, levels, current_level, font, small_font, medium_font, bg_image, CELLSIZE=50):
         self.screen = screen
         self.player = player
         self.levels = levels
@@ -166,6 +171,8 @@ class Game:
         self.current_level_data = self.levels[self.current_level]
         self.font = font
         self.small_font = small_font
+        self.medium_font = medium_font
+        self.bg_image = bg_image
         self.screen_on = "menu"
 
         self.level_buttons = []
@@ -179,11 +186,33 @@ class Game:
                 ButtonWithText(
                     text=f"Level {index + 1}", font=self.small_font,
                     screen=self.screen, x=left_button_start + (index % 5 * 150),
-                    y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) - 50,
+                    y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) - 100,
                     width=100, height=50, on_click=lambda i=index: self.start_level(i), color=(50, 50, 50),
                     rounded=5
                 )
             )
+
+        def initial_leaderboard_func():
+            self.top_scores = Leaderboard.get_top_scores(10)
+            self.leaderboard()
+
+        self.level_buttons += [
+            ButtonWithText(
+                text=f"How To Play", font=self.small_font,
+                screen=self.screen, x=self.WIDTH / 2 - 125 / 2 - 80,
+                y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) + 15,
+                width=125, height=50, on_click=self.how_to_play, color=(50, 50, 50),
+                rounded=5
+            ),
+            ButtonWithText(
+                text=f"Leaderboard", font=self.small_font,
+                screen=self.screen, x=self.WIDTH / 2 - 125 / 2 + 80,
+                y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) + 15,
+                width=125, height=50, on_click=initial_leaderboard_func, color=(50, 50, 50),
+                rounded=5
+            )
+        ]
+
         width = 110
         self.gameover_buttons = [
             ButtonWithText(
@@ -201,6 +230,57 @@ class Game:
                 rounded=5
             )
         ]
+
+        self.how_to_play_buttons = [
+            ButtonWithText(
+                text="Main Menu", font=self.small_font, screen=self.screen,
+                x=self.WIDTH / 2 - width / 2, y=self.HEIGHT / 2 + 60, width=width, height=50,
+                on_click=self.main_menu, color=(50, 50, 50), rounded=5
+            )
+        ]
+
+        self.leaderboard_buttons = [
+            ButtonWithText(
+                text=f"Refresh", font=self.small_font,
+                screen=self.screen, x=self.WIDTH / 2 - 125 / 2 - 80,
+                y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) + 15,
+                width=125, height=50, on_click=self.refresh_leaderboard, color=(50, 50, 50),
+                rounded=5
+            ),
+            ButtonWithText(
+                text=f"Main Menu", font=self.small_font,
+                screen=self.screen, x=self.WIDTH / 2 - 125 / 2 + 80,
+                y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) + 15,
+                width=125, height=50, on_click=self.main_menu, color=(50, 50, 50),
+                rounded=5
+            )
+        ]
+
+    def refresh_leaderboard(self, amount=10):
+        self.top_scores = Leaderboard.get_top_scores(amount)
+
+    def how_to_play(self):
+        self.screen_on = "how_to_play"
+        self.show_text("How to Play", y=20)
+        self.show_text("Use the Arrow Keys to Move the Player Left and Right", y=self.HEIGHT / 2 - 30, font=self.small_font)
+        self.show_text("Use the Spacebar or Click to Shoot", y=self.HEIGHT / 2 + 10, font=self.small_font)
+        for button in self.how_to_play_buttons:
+            button.draw()
+
+    def leaderboard(self):
+        self.screen_on = "leaderboard"
+        self.show_text("Leaderboard", y=20)
+        top_scores = self.top_scores
+        if top_scores:
+            for index, (name, score) in enumerate(top_scores.items()):
+                self.show_text(f"{index + 1}. {score} - {name}", y=100 + 35 * index, font=self.medium_font)
+        else:
+            if top_scores == {}:
+                self.show_text("No Scores Yet", y=100, font=self.medium_font)
+            else:
+                self.show_text("The Scores Could Not Be Retrieved", y=100, font=self.medium_font)
+        for button in self.leaderboard_buttons:
+            button.draw()
 
     def update_aliens(self):
         already_reversed = False
@@ -239,7 +319,14 @@ class Game:
         if sum(map(len, self.current_level_data.aliens)) == 0:
             if self.screen_on not in ("win", "lose"):
                 self.end_level()
-            self.screen_on = "win"
+                self.screen_on = "win"
+                self.screen.fill((0, 0, 0))
+                self.screen.blit(self.bg_image, (0, 0))
+                self.win_screen()
+                pygame.display.update()
+                username = simpledialog.askstring(title="Username", prompt="Enter a Username for the Leaderboard:")
+                if username:
+                    Leaderboard.add_score(self.get_time_taken(), username, f"level{self.current_level + 1}")
 
     def next_level(self):
         self.current_level += 1
@@ -279,8 +366,10 @@ class Game:
     def end_level(self):
         self.end_time = datetime.datetime.now()
 
-    def show_text(self, text: str, x=None, y=None):
-        text_obj = self.font.render(text, 1, (255, 255, 255))
+    def show_text(self, text: str, x=None, y=None, font=None):
+        if font is None:
+            font = self.font
+        text_obj = font.render(text, 1, (255, 255, 255))
         text_width, text_height = text_obj.get_width(), text_obj.get_height()
         if y is None:
             y = self.HEIGHT / 2 - text_height / 2
@@ -303,6 +392,12 @@ class Game:
 
     def check_gameover_buttons(self, x, y):
         return any(button.check_click(x, y) for button in self.gameover_buttons)
+
+    def check_how_to_play_buttons(self, x, y):
+        return any(button.check_click(x, y) for button in self.how_to_play_buttons)
+
+    def check_leaderboard_buttons(self, x, y):
+        return any(button.check_click(x, y) for button in self.leaderboard_buttons)
 
 
 class Level:
@@ -347,3 +442,27 @@ class ButtonWithText(Button):
         text_obj = self.font.render(self.text, 1, (255, 255, 255))
         text_width, text_height = text_obj.get_width(), text_obj.get_height()
         self.screen.blit(text_obj, (self.x + self.width / 2 - text_width / 2, self.y + self.height / 2 - text_height / 2))
+
+
+class Leaderboard:
+    server_url = "http://localhost:5000"
+    cache_scores = []
+
+    @classmethod
+    def get_top_scores(cls, amount, level="level1", refresh_cache=True):
+        if not refresh_cache:
+            if len(cls.cache_scores) >= amount:
+                return cls.cache_scores[:amount]
+            else:
+                refresh_cache = True
+        if refresh_cache:
+            try:
+                cls.cache_scores = requests.post(cls.server_url + "/get_scores", json={"amount": amount, "level": level}).json()["scores"]
+            except requests.exceptions.RequestException:
+                return False
+        cls.cache_scores = dict(sorted(cls.cache_scores.items(), key=lambda x: x[1]))
+        return cls.cache_scores
+
+    @classmethod
+    def add_score(cls, time, name, level):
+        requests.post(cls.server_url + "/add_score", json={"time": time, "name": name, "level": level})
