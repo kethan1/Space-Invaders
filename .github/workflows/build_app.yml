@@ -14,27 +14,15 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.9
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
-          python-version: 3.9
-
-      - name: MacOS Fix Network Flakiness
-        shell: bash
-        run: |
-            if [ "$RUNNER_OS" == "macOS" ]; then
-              sudo sysctl -w net.link.generic.system.hwcksum_tx=0
-              sudo sysctl -w net.link.generic.system.hwcksum_rx=0
-            fi
+          python-version: '3.9'
             
       - name: Install Dependencies
         shell: bash
         run: |
             pip install wheel
             pip install -r requirements.txt
-
-      - name: Create Artifacts Output Folder
-        shell: bash
-        run: mkdir Build-Artifacts
 
       - name: Build App
         shell: bash
