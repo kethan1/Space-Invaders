@@ -31,16 +31,15 @@ jobs:
             cp -r assets/ dist/assets/
             cd dist
             if [ "$RUNNER_OS" == "Linux" ]; then
-              zip ../space-invaders.zip *
+              zip ../space-invaders-linux.zip *
             elif [ "$RUNNER_OS" == "Windows" ]; then
-              tar.exe -a -cf ../space-invaders.zip *
+              tar.exe -a -cf ../space-invaders-win.zip *
             elif [ "$RUNNER_OS" == "macOS" ]; then
-              zip ../space-invaders.zip *
+              zip ../space-invaders-macos.zip *
             fi
             
             cd ../
 
       - uses: actions/upload-artifact@v2
         with:
-          path: |
-              space-invaders.zip
+          path: space-invaders-*.zip
