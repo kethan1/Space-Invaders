@@ -42,7 +42,14 @@ jobs:
             pyinstaller --onefile --noconsole game.py
             cp -r assets/ dist/assets/
             cd dist
-            tar.exe -a -cf ../space-invaders.zip * 
+            if [ "$RUNNER_OS" == "Linux" ]; then
+              zip ../space-invaders.zip *
+            elif [ "$RUNNER_OS" == "Windows" ]; then
+              tar.exe -a -cf ../space-invaders.zip *
+            elif [ "$RUNNER_OS" == "macOS" ]; then
+              zip ../space-invaders.zip *
+            fi
+            
             cd ../
 
       - uses: actions/upload-artifact@v2
