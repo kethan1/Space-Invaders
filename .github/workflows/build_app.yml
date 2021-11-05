@@ -1,4 +1,4 @@
-name: Build & Publish Space Invaders App
+name: Build Space Invaders App
 
 on: [push, pull_request]
 

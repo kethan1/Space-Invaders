@@ -1,4 +1,4 @@
-name: Build Space Invaders App
+name: Build & Publish Space Invaders App
 
 on:
   push:
