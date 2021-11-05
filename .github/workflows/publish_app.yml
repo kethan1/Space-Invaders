@@ -53,5 +53,5 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          path: |
-              space-invaders-*.zip
+          name: space-invaders-${{ runner.os }}.zip
+          path: space-invaders-*.zip
