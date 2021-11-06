@@ -32,15 +32,19 @@ jobs:
         run: | 
             pyinstaller --onefile --noconsole game.py
             cp -r assets/ dist/assets/
-            cd dist
+            mv dist space-invaders
             if [ "$RUNNER_OS" == "Linux" ]; then
-              zip ../space-invaders-linux.zip *
+              zip space-invaders-linux.zip space-invaders
             elif [ "$RUNNER_OS" == "Windows" ]; then
-              tar.exe -a -cf ../space-invaders-win.zip *
+              zip space-invaders-win.zip space-invaders
             elif [ "$RUNNER_OS" == "macOS" ]; then
-              zip ../space-invaders-macos.zip *
+              zip space-invaders-macOS.zip space-invaders
             fi
-            cd ../
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: space-invaders-${{ runner.os }}.zip
+          path: space-invaders-*.zip
         
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
@@ -50,8 +54,3 @@ jobs:
           tag: ${{ github.ref }}
           overwrite: true
           file_glob: true
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: space-invaders-${{ runner.os }}.zip
-          path: space-invaders-*.zip
