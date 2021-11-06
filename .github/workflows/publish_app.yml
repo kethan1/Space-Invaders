@@ -32,7 +32,7 @@ jobs:
         run: | 
             pyinstaller --onefile --noconsole game.py
             cp -r assets/ dist/assets/
-            mv dist space-invaders
+            mv dist space-invaders-${{ runner.os }}
 
       - uses: actions/upload-artifact@v2
         with:
