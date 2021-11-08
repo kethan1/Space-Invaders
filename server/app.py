@@ -1,9 +1,11 @@
-from flask import *
-from flask_pymongo import PyMongo
-from dotenv import load_dotenv
 import os
 
-load_dotenv()
+from flask import Flask, request, jsonify
+from flask_pymongo import PyMongo
+from dotenv import load_dotenv
+
+if "DYNO" not in os.environ:
+    load_dotenv()
 
 app = Flask(__name__)
 app.config["MONGO_URI"] = f"mongodb+srv://{os.environ['user']}:{os.environ['password']}@full-stack-web-developm.m7o9n.mongodb.net/space-invaders-top-scores?retryWrites=true&w=majority"
@@ -12,32 +14,51 @@ mongo = PyMongo(app)
 
 @app.route("/get_scores", methods=["POST"])
 def get_scores():
-    if request.method == "POST":
-        level = request.json["level"]
-        amount = request.json["amount"]
+    level = request.json["level"]
+    amount = request.json["amount"]
 
-        from_database = list(getattr(mongo.db, level).find())
-        output = {k: v for d in from_database for k, v in d.items()}
-        del output["_id"]
-        output = dict(sorted(output.items(), key=lambda x: x[1]))
-        print(output)
-        user = {}
-        for i in range(amount):
-            try:
-                user[list(output.keys())[i]] = list(output.values())[i]
-            except IndexError:
-                break
-        return jsonify({"scores": user})
+    from_database = list(getattr(mongo.db, level).find())
+    output = {k: v for d in from_database for k, v in d.items()}
+    del output["_id"]
+    output = dict(sorted(output.items(), key=lambda x: x[1]))
+    print(output)
+    user = {}
+    for number in range(amount):
+        try:
+            user[list(output.keys())[number]] = list(output.values())[number]
+        except IndexError:
+            break
+    return jsonify({"scores": user})
 
 
 @app.route("/add_score", methods=["POST"])
 def add_score():
-    if request.method == "POST":
-        level = request.json["level"]
-        time = request.json["time"]
-        name = request.json["name"]
-        getattr(mongo.db, level).insert_one({name: time})
-        return True
+    level = request.json["level"]
+    time = request.json["time"]
+    name = request.json["name"]
+    getattr(mongo.db, level).insert_one({name: time})
+    return jsonify(True)
+
+
+@app.route("/signup", methods=["POST"])
+def sign_up():
+    username = request.json["username"]
+    password = request.json["password"]
+    if mongo.db.users.find_one({"username": username}) is None:
+        mongo.db.users.insert_one({"username": username, "password": password})
+    else:
+        return jsonify({"already_exists": True})
+    return jsonify({"already_exists": False})
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    username = request.json["username"]
+    password = request.json["password"]
+    found = mongo.db.users.find_one({"username": username, "password": password})
+    if found is None:
+        return jsonify({"incorrect_info": True})
+    return jsonify({"incorrect_info": False})
 
 
 if __name__ == '__main__':

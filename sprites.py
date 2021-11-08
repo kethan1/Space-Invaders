@@ -4,9 +4,10 @@ import pygame
 import math
 import requests
 import tkinter as tk
-from tkinter import simpledialog
+from tkinter import simpledialog, messagebox, Label, Entry
 
-tk.Tk().withdraw()
+root = tk.Tk()
+root.withdraw()
 
 
 class Sprite:
@@ -174,6 +175,8 @@ class Game:
         self.medium_font = medium_font
         self.bg_image = bg_image
         self.screen_on = "menu"
+        self.signup_clicked = False
+        self.login_clicked = False
 
         self.level_buttons = []
         width_of_levels = len(self.levels[:5])
@@ -253,8 +256,28 @@ class Game:
                 y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) + 15,
                 width=125, height=50, on_click=self.main_menu, color=(50, 50, 50),
                 rounded=5
+            ),
+            ButtonWithText(
+                text=f"Sign Up", font=self.small_font,
+                screen=self.screen, x=self.WIDTH / 2 - 125 / 2 - 80,
+                y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) + 75,
+                width=125, height=50, on_click=lambda s=self: s.signup_clicked_func(), color=(50, 50, 50),
+                rounded=5
+            ),
+            ButtonWithText(
+                text=f"Login", font=self.small_font,
+                screen=self.screen, x=self.WIDTH / 2 - 125 / 2 + 80,
+                y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) + 75,
+                width=125, height=50, on_click=lambda s=self: s.login_clicked_func(), color=(50, 50, 50),
+                rounded=5
             )
         ]
+
+    def signup_clicked_func(self):
+        self.signup_clicked = True
+
+    def login_clicked_func(self):
+        self.login_clicked = True
 
     def refresh_leaderboard(self, amount=10):
         self.top_scores = Leaderboard.get_top_scores(amount)
@@ -279,6 +302,31 @@ class Game:
                 self.show_text("No Scores Yet", y=100, font=self.medium_font)
             else:
                 self.show_text("The Scores Could Not Be Retrieved", y=100, font=self.medium_font)
+        if self.signup_clicked:
+            result = MyDialog(root, "Username", "Password").get_text()
+            finished = False
+            while not finished:
+                if result is not None:
+                    if Leaderboard.signup(*result) == True:
+                        result = MyDialog(root, "Username", "Password", "An Account With That Username Already Exists").get_text()
+                    else:
+                        finished = True
+                else:
+                    finished = True
+            self.signup_clicked = False
+        elif self.login_clicked:
+            result = MyDialog(root, "Username", "Password").get_text()
+            print(result)
+            finished = False
+            while not finished:
+                if result is not None:
+                    if Leaderboard.login(*result) == True:
+                        result = MyDialog(root, "Username", "Password", "An Account With That Info Does Not Exist").get_text()
+                    else:
+                        finished = True
+                else:
+                    finished = True
+            self.login_clicked = False
         for button in self.leaderboard_buttons:
             button.draw()
 
@@ -326,7 +374,8 @@ class Game:
                 pygame.display.update()
                 username = simpledialog.askstring(title="Username", prompt="Enter a Username for the Leaderboard:")
                 if username:
-                    Leaderboard.add_score(self.get_time_taken(), username, f"level{self.current_level + 1}")
+                    if not Leaderboard.add_score(self.get_time_taken(), username, f"level{self.current_level + 1}"):
+                        messagebox.showerror(message="Unable to Submit Score. Check That You Are Connected to the Internet.")
 
     def next_level(self):
         self.current_level += 1
@@ -465,4 +514,58 @@ class Leaderboard:
 
     @classmethod
     def add_score(cls, time, name, level):
-        requests.post(cls.server_url + "/add_score", json={"time": time, "name": name, "level": level})
+        try:
+            requests.post(cls.server_url + "/add_score", json={"time": time, "name": name, "level": level})
+        except requests.exceptions.RequestException:
+            return False
+        return True
+
+    @classmethod
+    def login(cls, username, password):
+        return requests.post(cls.server_url + "/login", json={"username": username, "password": password}).json()["incorrect_info"]
+
+    @classmethod
+    def signup(cls, username, password):
+        return requests.post(cls.server_url + "/signup", json={"username": username, "password": password}).json()["already_exists"]
+
+
+class MyDialog(simpledialog.Dialog):
+    def __init__(self, master, first_label, second_label, extra_text=None, title=None):
+        self.first_label = first_label
+        self.second_label = second_label
+        self.master = master
+        self.extra_text = extra_text
+        super().__init__(master, title)
+
+    def body(self, master):
+        Label(master, text=f"{self.first_label}: ").grid(row=0)
+        Label(master, text=f"{self.second_label}: ").grid(row=1)
+        if self.extra_text is not None:
+            Label(master, text=self.extra_text).grid(row=2)
+
+        self.e1 = Entry(master)
+        self.e2 = Entry(master)
+
+        self.e1.grid(row=0, column=1)
+        self.e2.grid(row=1, column=1)
+        return self.e1  # initial focus
+
+    def apply(self):
+        first = self.e1.get()
+        second = self.e2.get()
+        print(first, second)
+        self.data = [first, second]
+
+    def validate(self):
+        first = self.e1.get()
+        second = self.e2.get()
+        if first and second:
+            return 1
+        else:
+            return 0
+
+    def get_text(self):
+        try:
+            return self.data
+        except AttributeError:  # User clicked cancel
+            return None
