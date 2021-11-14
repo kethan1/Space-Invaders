@@ -113,6 +113,13 @@ while True:
             player.move_left()
         if keys[K_RIGHT]:
             player.move_right()
+    elif game.screen_on == "pause":
+        game.update_aliens()
+        game.check_if_level_done()
+        game.show_time_taken()
+        player.draw()
+        player.show_bullets()
+        player.show_health(small_font)
 
     for event in pygame.event.get():
         if event.type == QUIT:

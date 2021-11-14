@@ -1,4 +1,4 @@
 flask
 pymongo[srv]
 Flask-PyMongo
-dotenv
+python-dotenv
