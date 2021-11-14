@@ -4,7 +4,7 @@ import pygame
 import math
 import requests
 import tkinter as tk
-from tkinter import simpledialog, messagebox, Label, Entry
+import tkinter.simpledialog
 
 root = tk.Tk()
 root.withdraw()
@@ -23,12 +23,13 @@ class Sprite:
         self.screen.blit(self.image, (self.x, self.y))
 
     def move_left(self):
-        if self.x >= 0:
+        if self.x >= self.speed:
             self.x -= self.speed
+        elif self.x >= 0:
+            self.x = 0
 
     def move_right(self):
-        w, h = self.screen.get_size()
-        if self.x < w - self.image.get_width():
+        if self.x < self.screen.get_width() - self.image.get_width():
             self.x += self.speed
 
 
@@ -162,7 +163,7 @@ class Bullet(Sprite):
 
 
 class Game:
-    def __init__(self, screen, player, levels, current_level, font, small_font, medium_font, bg_image, CELLSIZE=50):
+    def __init__(self, screen, player, levels, current_level, small_font, medium_font, big_font, bg_image, CELLSIZE=50):
         self.screen = screen
         self.player = player
         self.levels = levels
@@ -170,9 +171,9 @@ class Game:
         self.WIDTH, self.HEIGHT = screen.get_size()
         self.CELLSIZE = CELLSIZE
         self.current_level_data = self.levels[self.current_level]
-        self.font = font
         self.small_font = small_font
         self.medium_font = medium_font
+        self.font = big_font
         self.bg_image = bg_image
         self.screen_on = "menu"
         self.signup_clicked = False
@@ -186,12 +187,11 @@ class Game:
             left_button_start = (self.WIDTH / 2 - (width_of_levels // 2) * 150) - 50
         for index, _ in enumerate(self.levels):
             self.level_buttons.append(
-                ButtonWithText(
+                DefaultButton(
                     text=f"Level {index + 1}", font=self.small_font,
                     screen=self.screen, x=left_button_start + (index % 5 * 150),
                     y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) - 100,
-                    width=100, height=50, on_click=lambda i=index: self.start_level(i), color=(50, 50, 50),
-                    rounded=5
+                    width=100, height=50, on_click=lambda i=index: self.start_level(i)
                 )
             )
 
@@ -200,76 +200,68 @@ class Game:
             self.leaderboard()
 
         self.level_buttons += [
-            ButtonWithText(
+            DefaultButton(
                 text=f"How To Play", font=self.small_font,
                 screen=self.screen, x=self.WIDTH / 2 - 125 / 2 - 80,
                 y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) + 15,
-                width=125, height=50, on_click=self.how_to_play, color=(50, 50, 50),
-                rounded=5
+                width=125, height=50, on_click=self.how_to_play
             ),
-            ButtonWithText(
+            DefaultButton(
                 text=f"Leaderboard", font=self.small_font,
                 screen=self.screen, x=self.WIDTH / 2 - 125 / 2 + 80,
                 y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) + 15,
-                width=125, height=50, on_click=initial_leaderboard_func, color=(50, 50, 50),
-                rounded=5
+                width=125, height=50, on_click=initial_leaderboard_func
             )
         ]
 
         width = 110
         self.gameover_buttons = [
-            ButtonWithText(
+            DefaultButton(
                 text="Restart", font=self.small_font,
                 screen=self.screen, x=(self.WIDTH / 2 - width / 2) + 100,
                 y=self.HEIGHT / 2,
-                width=width, height=50, on_click=self.start_level, color=(50, 50, 50),
-                rounded=5
+                width=width, height=50, on_click=self.start_level
             ),
-            ButtonWithText(
+            DefaultButton(
                 text="Main Menu", font=self.small_font,
                 screen=self.screen, x=(self.WIDTH / 2 - width / 2) - 100,
                 y=self.HEIGHT / 2,
-                width=width, height=50, on_click=self.main_menu, color=(50, 50, 50),
-                rounded=5
+                width=width, height=50, on_click=self.main_menu
             )
         ]
 
         self.how_to_play_buttons = [
-            ButtonWithText(
+            DefaultButton(
                 text="Main Menu", font=self.small_font, screen=self.screen,
                 x=self.WIDTH / 2 - width / 2, y=self.HEIGHT / 2 + 60, width=width, height=50,
-                on_click=self.main_menu, color=(50, 50, 50), rounded=5
+                on_click=self.main_menu
             )
         ]
 
         self.leaderboard_buttons = [
-            ButtonWithText(
+            DefaultButton(
                 text=f"Refresh", font=self.small_font,
                 screen=self.screen, x=self.WIDTH / 2 - 125 / 2 - 80,
                 y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) + 15,
-                width=125, height=50, on_click=self.refresh_leaderboard, color=(50, 50, 50),
-                rounded=5
+                width=125, height=50, on_click=self.refresh_leaderboard
             ),
-            ButtonWithText(
+            DefaultButton(
                 text=f"Main Menu", font=self.small_font,
                 screen=self.screen, x=self.WIDTH / 2 - 125 / 2 + 80,
                 y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) + 15,
-                width=125, height=50, on_click=self.main_menu, color=(50, 50, 50),
-                rounded=5
+                width=125, height=50, on_click=self.main_menu
             ),
-            ButtonWithText(
+            DefaultButton(
                 text=f"Sign Up", font=self.small_font,
                 screen=self.screen, x=self.WIDTH / 2 - 125 / 2 - 80,
                 y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) + 75,
-                width=125, height=50, on_click=lambda s=self: s.signup_clicked_func(), color=(50, 50, 50),
-                rounded=5
+                width=125, height=50, on_click=lambda s=self: s.signup_clicked_func()
             ),
-            ButtonWithText(
+            DefaultButton(
                 text=f"Login", font=self.small_font,
                 screen=self.screen, x=self.WIDTH / 2 - 125 / 2 + 80,
                 y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) + 75,
-                width=125, height=50, on_click=lambda s=self: s.login_clicked_func(), color=(50, 50, 50),
-                rounded=5
+                width=125, height=50, on_click=lambda s=self: s.login_clicked_func()
             )
         ]
 
@@ -295,36 +287,34 @@ class Game:
         self.show_text("Leaderboard", y=20)
         top_scores = self.top_scores
         if top_scores:
-            for index, (name, score) in enumerate(top_scores.items()):
+            for index, (name, score) in enumerate(top_scores):
                 self.show_text(f"{index + 1}. {score} - {name}", y=100 + 35 * index, font=self.medium_font)
+        elif top_scores == {}:
+            self.show_text("No Scores Yet", y=100, font=self.medium_font)
         else:
-            if top_scores == {}:
-                self.show_text("No Scores Yet", y=100, font=self.medium_font)
-            else:
-                self.show_text("The Scores Could Not Be Retrieved", y=100, font=self.medium_font)
+            self.show_text("The Scores Could Not Be Retrieved", y=100, font=self.medium_font)
         if self.signup_clicked:
-            result = MyDialog(root, "Username", "Password").get_text()
+            result = TwoTextInputDialog(root, "Username", "Password").get_text()
             finished = False
             while not finished:
-                if result is not None:
-                    if Leaderboard.signup(*result) == True:
-                        result = MyDialog(root, "Username", "Password", "An Account With That Username Already Exists").get_text()
-                    else:
-                        finished = True
+                if result is None:
+                    finished = True
+                elif Leaderboard.signup(*result):
+                    result = TwoTextInputDialog(root, "Username", "Password", "An Account With That Username Already Exists").get_text()
                 else:
                     finished = True
+                    Leaderboard.current_account = result[0]
             self.signup_clicked = False
         elif self.login_clicked:
-            result = MyDialog(root, "Username", "Password").get_text()
-            print(result)
+            result = TwoTextInputDialog(root, "Username", "Password").get_text()
             finished = False
             while not finished:
-                if result is not None:
-                    if Leaderboard.login(*result) == True:
-                        result = MyDialog(root, "Username", "Password", "An Account With That Info Does Not Exist").get_text()
-                    else:
-                        finished = True
+                if result is None:
+                    finished = True
+                elif Leaderboard.login(*result):
+                    result = TwoTextInputDialog(root, "Username", "Password", "An Account With That Info Does Not Exist").get_text()
                 else:
+                    Leaderboard.current_account = result[0]
                     finished = True
             self.login_clicked = False
         for button in self.leaderboard_buttons:
@@ -364,18 +354,59 @@ class Game:
             self.screen_on = "lose"
 
     def check_if_level_done(self):
-        if sum(map(len, self.current_level_data.aliens)) == 0:
-            if self.screen_on not in ("win", "lose"):
-                self.end_level()
-                self.screen_on = "win"
-                self.screen.fill((0, 0, 0))
-                self.screen.blit(self.bg_image, (0, 0))
-                self.win_screen()
-                pygame.display.update()
-                username = simpledialog.askstring(title="Username", prompt="Enter a Username for the Leaderboard:")
-                if username:
-                    if not Leaderboard.add_score(self.get_time_taken(), username, f"level{self.current_level + 1}"):
-                        messagebox.showerror(message="Unable to Submit Score. Check That You Are Connected to the Internet.")
+        if sum(map(len, self.current_level_data.aliens)) == 0 and self.screen_on not in ("win", "lose"):
+            self.end_level()
+            self.screen_on = "win"
+            self.screen.fill((0, 0, 0))
+            self.screen.blit(self.bg_image, (0, 0))
+            self.win_screen()
+            pygame.display.update()
+            if Leaderboard.current_account is not None:
+                score_added = Leaderboard.add_score(self.get_time_taken(), f"level{self.current_level + 1}")
+                if score_added is None:
+                    tk.messagebox.showerror(message="Unable to Submit Score. Check That You Are Connected to the Internet.")
+                elif not score_added:
+                    tk.messagebox.showerror(message="An Account With That Info Does Not Exist.")
+            else:
+                button_clicked = ThreeButtonInfo(root, "Login", "Signup", "Cancel", "Login or Signup to Post a Score").button_clicked
+                if button_clicked == 1:  # Login
+                    result = TwoTextInputDialog(root, "Username", "Password").get_text()
+                    finished = False
+                    while not finished:
+                        if result is not None:
+                            login_result = Leaderboard.login(*result)
+                            if login_result:
+                                result = TwoTextInputDialog(root, "Username", "Password", "An Account With That Info Does Not Exists").get_text()
+                            elif login_result is None:
+                                finished = True
+                                tk.messagebox.showerror(message="Unable to Login. Check That You Are Connected to the Internet.")
+                            else:
+                                finished = True
+                                Leaderboard.current_account = result[0]
+                        else:
+                            finished = True
+                elif button_clicked == 2:  # Signup
+                    result = TwoTextInputDialog(root, "Username", "Password").get_text()
+                    finished = False
+                    while not finished:
+                        if result is not None:
+                            signup_result = Leaderboard.signup(*result)
+                            if signup_result:
+                                result = TwoTextInputDialog(root, "Username", "Password", "An Account With That Username Already Exists").get_text()
+                            elif signup_result is None:
+                                finished = True
+                                tk.messagebox.showerror(message="Unable to Sign Up. Check That You Are Connected to the Internet.")
+                            else:
+                                finished = True
+                                Leaderboard.current_account = result[0]
+                        else:
+                            finished = True
+                elif button_clicked == 3:  # Cancel
+                    pass
+
+                if Leaderboard.current_account is not None:
+                    if not Leaderboard.add_score(self.get_time_taken(), f"level{self.current_level + 1}"):
+                        tk.messagebox.showerror(message="Unable to Submit Score. Check That You Are Connected to the Internet.")
 
     def next_level(self):
         self.current_level += 1
@@ -460,7 +491,7 @@ class Level:
 
 
 class Button:
-    def __init__(self, screen, x, y, width, height, on_click, color, rounded=0):
+    def __init__(self, screen, x, y, width, height, on_click, color, rounded=0, border=0, border_color=(0, 0, 0)):
         self.screen = screen
         self.x = x
         self.y = y
@@ -469,9 +500,13 @@ class Button:
         self.on_click = on_click
         self.color = color
         self.rounded = rounded
+        self.border = border
+        self.border_color = border_color
 
     def draw(self):
         pygame.draw.rect(self.screen, self.color, (self.x, self.y, self.width, self.height), border_radius=self.rounded)
+        if self.border != 0:
+            pygame.draw.rect(self.screen, self.border_color, (self.x, self.y, self.width, self.height), border_radius=self.rounded, width=int(self.border * 2))
 
     def check_click(self, x, y):
         if self.x <= x <= self.x + self.width and self.y <= y <= self.y + self.height:
@@ -481,21 +516,28 @@ class Button:
 
 
 class ButtonWithText(Button):
-    def __init__(self, screen, x, y, width, height, on_click, color, font, text="", rounded=0):
-        super().__init__(screen, x, y, width, height, on_click, color, rounded)
+    def __init__(self, screen, x, y, width, height, on_click, color, font, text="", rounded=0,  border=0, border_color=None, text_color=(255, 255, 255)):
+        super().__init__(screen, x, y, width, height, on_click, color, rounded, border, border_color)
         self.text = text
         self.font = font
+        self.text_color = text_color
 
     def draw(self):
         super().draw()
-        text_obj = self.font.render(self.text, 1, (255, 255, 255))
+        text_obj = self.font.render(self.text, 1, self.text_color)
         text_width, text_height = text_obj.get_width(), text_obj.get_height()
         self.screen.blit(text_obj, (self.x + self.width / 2 - text_width / 2, self.y + self.height / 2 - text_height / 2))
+
+
+class DefaultButton(ButtonWithText):
+    def __init__(self, screen, x, y, width, height, on_click, font, text):
+        super().__init__(screen, x, y, width, height, on_click, (70, 70, 70), font, text, 7,  1.5, (10, 10, 10))
 
 
 class Leaderboard:
     server_url = "http://localhost:5000"
     cache_scores = []
+    current_account = None
 
     @classmethod
     def get_top_scores(cls, amount, level="level1", refresh_cache=True):
@@ -509,27 +551,36 @@ class Leaderboard:
                 cls.cache_scores = requests.post(cls.server_url + "/get_scores", json={"amount": amount, "level": level}).json()["scores"]
             except requests.exceptions.RequestException:
                 return False
-        cls.cache_scores = dict(sorted(cls.cache_scores.items(), key=lambda x: x[1]))
+
+        cls.cache_scores = list(sorted(cls.cache_scores, key=lambda x: x[1]))
         return cls.cache_scores
 
     @classmethod
-    def add_score(cls, time, name, level):
-        try:
-            requests.post(cls.server_url + "/add_score", json={"time": time, "name": name, "level": level})
-        except requests.exceptions.RequestException:
-            return False
-        return True
+    def add_score(cls, time, level):
+        if cls.current_account is not None:
+            try:
+                requests.post(cls.server_url + "/add_score", json={"time": time, "name": cls.current_account, "level": level})
+            except requests.exceptions.RequestException:
+                return False
+            return True
+        return None
 
     @classmethod
     def login(cls, username, password):
-        return requests.post(cls.server_url + "/login", json={"username": username, "password": password}).json()["incorrect_info"]
+        try:
+            return requests.post(cls.server_url + "/login", json={"username": username, "password": password}).json()["incorrect_info"]
+        except requests.exceptions.RequestException:
+            pass
 
     @classmethod
     def signup(cls, username, password):
-        return requests.post(cls.server_url + "/signup", json={"username": username, "password": password}).json()["already_exists"]
+        try:
+            return requests.post(cls.server_url + "/signup", json={"username": username, "password": password}).json()["already_exists"]
+        except requests.exceptions.RequestException:
+            pass
 
 
-class MyDialog(simpledialog.Dialog):
+class TwoTextInputDialog(tk.simpledialog.Dialog):
     def __init__(self, master, first_label, second_label, extra_text=None, title=None):
         self.first_label = first_label
         self.second_label = second_label
@@ -538,13 +589,14 @@ class MyDialog(simpledialog.Dialog):
         super().__init__(master, title)
 
     def body(self, master):
-        Label(master, text=f"{self.first_label}: ").grid(row=0)
-        Label(master, text=f"{self.second_label}: ").grid(row=1)
+        tk.Label(master, text=f"{self.first_label}: ").grid(row=0)
+        if self.second_label == "Password":
+            tk.Label(master, text=f"{self.second_label}: ").grid(row=1)
+            self.e2 = tk.Entry(master, show="•")
         if self.extra_text is not None:
-            Label(master, text=self.extra_text).grid(row=2)
+            tk.Label(master, text=self.extra_text).grid(row=2)
 
-        self.e1 = Entry(master)
-        self.e2 = Entry(master)
+        self.e1 = tk.Entry(master)
 
         self.e1.grid(row=0, column=1)
         self.e2.grid(row=1, column=1)
@@ -553,7 +605,6 @@ class MyDialog(simpledialog.Dialog):
     def apply(self):
         first = self.e1.get()
         second = self.e2.get()
-        print(first, second)
         self.data = [first, second]
 
     def validate(self):
@@ -569,3 +620,47 @@ class MyDialog(simpledialog.Dialog):
             return self.data
         except AttributeError:  # User clicked cancel
             return None
+
+
+class ThreeButtonInfo(tk.simpledialog.Dialog):
+    def __init__(self, master, button1_text, button2_text, button3_text, info=None, title=None):
+        self.button1_text = button1_text
+        self.button2_text = button2_text
+        self.button3_text = button3_text
+        self.button_clicked = None
+        self.master = master
+        self.info = info
+        super().__init__(master, title)
+
+    def body(self, master):
+        if self.info is not None:
+            tk.Label(master, text=self.info).grid(row=2)
+
+        return None  # initial focus
+
+    def buttonbox(self):
+        box = tk.Frame(self)
+
+        w = tk.Button(box, text=self.button1_text, width=10, command=self.button1_clicked, default=tk.ACTIVE)
+        w.pack(side=tk.LEFT, padx=5, pady=5)
+        w = tk.Button(box, text=self.button2_text, width=10, command=self.button2_clicked)
+        w.pack(side=tk.LEFT, padx=5, pady=5)
+        w = tk.Button(box, text=self.button3_text, width=10, command=self.button3_clicked)
+        w.pack(side=tk.LEFT, padx=5, pady=5)
+
+        self.bind("<Return>", self.button1_clicked)
+        self.bind("<Escape>", self.button3_clicked)
+
+        box.pack()
+
+    def button1_clicked(self):
+        self.button_clicked = 1
+        self.ok()
+
+    def button2_clicked(self):
+        self.button_clicked = 2
+        self.cancel()
+
+    def button3_clicked(self):
+        self.button_clicked = 3
+        self.cancel()

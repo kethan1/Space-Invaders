@@ -1,6 +1,7 @@
 import os
+import urllib.parse
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, redirect
 from flask_pymongo import PyMongo
 from dotenv import load_dotenv
 
@@ -12,23 +13,22 @@ app.config["MONGO_URI"] = f"mongodb+srv://{os.environ['user']}:{os.environ['pass
 mongo = PyMongo(app)
 
 
+# @app.before_request
+# def before_request():
+#     if 'DYNO' in os.environ and request.url.startswith('http://'):
+#         url = request.url.replace('http://', 'https://', 1)
+#         return redirect(urllib.parse.quote(url), code=301)
+
+
 @app.route("/get_scores", methods=["POST"])
 def get_scores():
     level = request.json["level"]
     amount = request.json["amount"]
 
     from_database = list(getattr(mongo.db, level).find())
-    output = {k: v for d in from_database for k, v in d.items()}
-    del output["_id"]
-    output = dict(sorted(output.items(), key=lambda x: x[1]))
-    print(output)
-    user = {}
-    for number in range(amount):
-        try:
-            user[list(output.keys())[number]] = list(output.values())[number]
-        except IndexError:
-            break
-    return jsonify({"scores": user})
+    output = [[k, v] for d in from_database for k, v in d.items() if k != "_id"]
+    output = list(sorted(output, key=lambda x: x[1]))
+    return jsonify({"scores": output[:amount]})
 
 
 @app.route("/add_score", methods=["POST"])

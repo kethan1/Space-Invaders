@@ -14,15 +14,26 @@ pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Space Invaders")
 
-player_image = pygame.transform.scale(pygame.image.load("assets/images/spaceship.png"), (CELLSIZE, CELLSIZE))
-bullet_image = pygame.transform.scale(pygame.image.load("assets/images/bullet.png"), (CELLSIZE, CELLSIZE))
+if "--dev" not in sys.argv[1:]:
+    Leaderboard.server_url = "https://space-invaders1.herokuapp.com"
+
+
+def load_img(path):
+    return pygame.transform.scale(pygame.image.load(path), (CELLSIZE, CELLSIZE))
+
+
+player_image = load_img("assets/images/spaceship.png").convert_alpha()
+bullet_image = load_img("assets/images/bullet.png").convert_alpha()
 bullet_image2 = pygame.transform.flip(bullet_image, False, True)
-standard_alien_image = pygame.transform.scale(pygame.image.load("assets/images/aliens/alien1.png"), (CELLSIZE, CELLSIZE))
-beefy_alien_image = pygame.transform.scale(pygame.image.load("assets/images/aliens/alien2.png"), (CELLSIZE, CELLSIZE))
-annoying_alien_image = pygame.transform.scale(pygame.image.load("assets/images/aliens/alien3.png"), (CELLSIZE, CELLSIZE))
-boss_alien_image = pygame.transform.scale(pygame.image.load("assets/images/aliens/alien4.png"), (CELLSIZE, CELLSIZE))
-background = pygame.transform.scale(pygame.image.load("assets/images/background.png"), (WIDTH, HEIGHT)).convert_alpha()
+standard_alien_image = load_img("assets/images/aliens/alien1.png").convert_alpha()
+beefy_alien_image = load_img("assets/images/aliens/alien2.png").convert_alpha()
+annoying_alien_image = load_img("assets/images/aliens/alien3.png").convert_alpha()
+boss_alien_image = load_img("assets/images/aliens/alien4.png").convert_alpha()
+background = pygame.image.load("assets/images/background.png").convert_alpha()
+icon = pygame.image.load("assets/icon.png")
 font_path = "assets/Segoe-UI-Variable-Static-Display.ttf"
+
+pygame.display.set_icon(icon)
 
 player = Player(screen=screen, x=WIDTH/2 - CELLSIZE/2, y=HEIGHT - CELLSIZE - 5,
                 image=player_image, bullet_image=bullet_image)
@@ -46,21 +57,21 @@ alien_images = {
 }
 
 for file in natsort.natsorted(os.listdir("assets/levels/"), alg=natsort.ns.IGNORECASE):
-    with open(f"assets/levels/{file}") as level1_csv:
+    with open(f"assets/levels/{file}") as level_csv:
         level_class_template = []
-        for line in level1_csv:
-            if line.startswith("#"):
+        for line in level_csv:
+            if line.startswith("#alien_speed="):
                 level_speed = int(line.strip("#alien_speed=").strip())
                 continue
-            level_class_template.append([])
-            for class_num in line.split(","):
-                level_class_template[-1].append(alien_types[class_num.strip()])
+            level_class_template.append([
+                alien_types[class_num.strip()] for class_num in line.split(",")
+            ])
         level_objs = []
         y = CELLSIZE * 2
         for index, row in enumerate(level_class_template):
             level_objs.append([])
             x = WIDTH / 2 - CELLSIZE * len(row) / 2
-            for column, alien_class in enumerate(row):
+            for alien_class in row:
                 level_objs[index].append(alien_class(screen, x, y, alien_images[alien_class], bullet_image2))
                 x += CELLSIZE
             y += CELLSIZE
@@ -70,7 +81,7 @@ for file in natsort.natsorted(os.listdir("assets/levels/"), alg=natsort.ns.IGNOR
 small_font = pygame.font.Font(font_path, 20)
 large_font = pygame.font.Font(font_path, 50)
 medium_font = pygame.font.Font(font_path, 27)
-game = Game(screen, player, levels, 0, large_font, small_font, medium_font, background)
+game = Game(screen, player, levels, 0, small_font, medium_font, large_font, background)
 
 clock = pygame.time.Clock()
 while True:
@@ -122,3 +133,6 @@ while True:
             if event.key == K_SPACE:
                 if game.screen_on == "game":
                     player.shoot()
+            elif event.key == K_ESCAPE:
+                if game.screen_on == "game":
+                    pass

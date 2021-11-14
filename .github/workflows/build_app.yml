@@ -27,7 +27,7 @@ jobs:
       - name: Build App
         shell: bash
         run: | 
-            pyinstaller --onefile --noconsole game.py
+            pyinstaller --onefile --icon="/assets/icon.png" --noconsole game.py
             cp -r assets/ dist/assets/
             mv dist space-invaders-${{ runner.os }}
 
