@@ -49,12 +49,13 @@ class Player(Sprite):
                                    image=self.bullet_image,
                                    speed=self.bullet_speed))
 
-    def show_bullets(self):
+    def show_bullets(self, move=True):
         for bullet in self.bullets.copy():
             bullet.draw()
-            bullet.move_up()
-            if bullet.y < 0 - self.CELLSIZE:
-                self.bullets.remove(bullet)
+            if move:
+                bullet.move_up()
+                if bullet.y < 0 - self.CELLSIZE:
+                    self.bullets.remove(bullet)
 
     def check_collision(self, obj):
         for bullet in self.bullets.copy():
@@ -96,12 +97,13 @@ class AlienTemplate(Sprite):
     def move_down_row(self):
         self.y += self.CELLSIZE
 
-    def show_bullets(self):
+    def show_bullets(self, move=True):
         for bullet in self.bullets.copy():
             bullet.draw()
-            bullet.move_down()
-            if bullet.y > self.WIDTH:
-                self.bullets.remove(bullet)
+            if move:
+                bullet.move_down()
+                if bullet.y > self.WIDTH:
+                    self.bullets.remove(bullet)
 
     def check_collision(self, player):
         for bullet in self.bullets.copy():
@@ -265,6 +267,24 @@ class Game:
             )
         ]
 
+        self.pause_buttons = [
+            DefaultButton(
+                text=f"Resume", font=self.small_font,
+                screen=self.screen, x=self.WIDTH / 2 - 125 / 2,
+                y=self.HEIGHT / 2 - 50 / 2 - 30,
+                width=125, height=50, on_click=lambda: self.screen_on_game()
+            ),
+            DefaultButton(
+                text=f"Main Menu", font=self.small_font,
+                screen=self.screen, x=self.WIDTH / 2 - 125 / 2,
+                y=self.HEIGHT / 2 - 50 / 2 + 50,
+                width=125, height=50, on_click=self.main_menu
+            )
+        ]
+
+    def screen_on_game(self):
+        self.screen_on = "game"
+
     def signup_clicked_func(self):
         self.signup_clicked = True
 
@@ -273,6 +293,12 @@ class Game:
 
     def refresh_leaderboard(self, amount=10):
         self.top_scores = Leaderboard.get_top_scores(amount)
+
+    def pause_game(self):
+        self.screen_on = "pause"
+        pygame.draw.rect(self.screen, (160, 160, 160), (self.WIDTH / 2 - 300 / 2, self.HEIGHT / 2 - 300 / 2, 300, 300))
+        for button in self.pause_buttons:
+            button.draw()
 
     def how_to_play(self):
         self.screen_on = "how_to_play"
@@ -320,7 +346,7 @@ class Game:
         for button in self.leaderboard_buttons:
             button.draw()
 
-    def update_aliens(self):
+    def update_aliens(self, move=True):
         already_reversed = False
         for row in self.current_level_data.aliens:
             for alien in row:
@@ -328,7 +354,8 @@ class Game:
                     self.screen_on = "lose"
                 if alien.x <= 0 or alien.x >= self.WIDTH - self.CELLSIZE:
                     if not already_reversed:
-                        self.current_level_data.alien_speed = -self.current_level_data.alien_speed
+                        if move:
+                            self.current_level_data.alien_speed = -self.current_level_data.alien_speed
                     already_reversed = True
                     break
             if already_reversed:
@@ -342,13 +369,15 @@ class Game:
                     if row == []:
                         self.current_level_data.aliens.remove([])
                         continue
-                alien.move(self.current_level_data.alien_speed)
+                if move:
+                    alien.move(self.current_level_data.alien_speed)
                 alien.draw()
                 if already_reversed:
-                    alien.move_down_row()
-                if alien.shoot_prob() and len(aliens_copy) == index + 1:
+                    if move:
+                        alien.move_down_row()
+                if alien.shoot_prob() and len(aliens_copy) == index + 1 and move:
                     alien.shoot()
-                alien.show_bullets()
+                alien.show_bullets(move)
                 alien.check_collision(self.player)
         if self.player.health <= 0:
             self.screen_on = "lose"
@@ -478,6 +507,9 @@ class Game:
 
     def check_leaderboard_buttons(self, x, y):
         return any(button.check_click(x, y) for button in self.leaderboard_buttons)
+
+    def check_pause_buttons(self, x, y):
+        return any(button.check_click(x, y) for button in self.pause_buttons)
 
 
 class Level:

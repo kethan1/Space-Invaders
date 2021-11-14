@@ -114,12 +114,13 @@ while True:
         if keys[K_RIGHT]:
             player.move_right()
     elif game.screen_on == "pause":
-        game.update_aliens()
+        game.update_aliens(move=False)
         game.check_if_level_done()
         game.show_time_taken()
         player.draw()
-        player.show_bullets()
+        player.show_bullets(move=False)
         player.show_health(small_font)
+        game.pause_game()
 
     for event in pygame.event.get():
         if event.type == QUIT:
@@ -136,10 +137,14 @@ while True:
                 game.check_how_to_play_buttons(*pygame.mouse.get_pos())
             elif game.screen_on == "leaderboard":
                 game.check_leaderboard_buttons(*pygame.mouse.get_pos())
+            elif game.screen_on == "pause":
+                game.check_pause_buttons(*pygame.mouse.get_pos())
         elif event.type == KEYDOWN:
             if event.key == K_SPACE:
                 if game.screen_on == "game":
                     player.shoot()
             elif event.key == K_ESCAPE:
                 if game.screen_on == "game":
-                    pass
+                    game.pause_game()
+                elif game.screen_on == "pause":
+                    game.screen_on = "game"
