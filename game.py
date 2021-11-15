@@ -29,6 +29,7 @@ standard_alien_image = load_img("assets/images/aliens/alien1.png").convert_alpha
 beefy_alien_image = load_img("assets/images/aliens/alien2.png").convert_alpha()
 annoying_alien_image = load_img("assets/images/aliens/alien3.png").convert_alpha()
 boss_alien_image = load_img("assets/images/aliens/alien4.png").convert_alpha()
+mirror_image = load_img("assets/images/mirror.png").convert_alpha()
 background = pygame.image.load("assets/images/background.png").convert_alpha()
 icon = pygame.image.load("assets/icon.png")
 font_path = "assets/Segoe-UI-Variable-Static-Display.ttf"
@@ -45,7 +46,9 @@ alien_types = {
     "1": BeefyAlien,
     "2": AnnoyingAlien,
     "3": VeryAnnoyingAlien,
-    "4": BossAlien
+    "4": BossAlien,
+    "5": Mirror,
+    "x": None
 }
 
 alien_images = {
@@ -53,12 +56,14 @@ alien_images = {
     BeefyAlien: beefy_alien_image,
     AnnoyingAlien: annoying_alien_image,
     VeryAnnoyingAlien: annoying_alien_image,
-    BossAlien: boss_alien_image
+    BossAlien: boss_alien_image,
+    Mirror: mirror_image
 }
 
 for file in natsort.natsorted(os.listdir("assets/levels/"), alg=natsort.ns.IGNORECASE):
     with open(f"assets/levels/{file}") as level_csv:
         level_class_template = []
+        stationary_objs = []
         for line in level_csv:
             if line.startswith("#alien_speed="):
                 level_speed = int(line.strip("#alien_speed=").strip())
@@ -72,10 +77,14 @@ for file in natsort.natsorted(os.listdir("assets/levels/"), alg=natsort.ns.IGNOR
             level_objs.append([])
             x = WIDTH / 2 - CELLSIZE * len(row) / 2
             for alien_class in row:
-                level_objs[index].append(alien_class(screen, x, y, alien_images[alien_class], bullet_image2))
+                if alien_class is not None:
+                    if alien_class != Mirror:
+                        level_objs[index].append(alien_class(screen, x, y, alien_images[alien_class], bullet_image2))
+                    else:
+                        stationary_objs.append(alien_class(screen, x, y, alien_images[alien_class]))
                 x += CELLSIZE
             y += CELLSIZE
-        levels.append(Level(aliens=level_objs, alien_speed=level_speed))
+        levels.append(Level(aliens=level_objs, alien_speed=level_speed, stationary_objs=stationary_objs))
 
 
 small_font = pygame.font.Font(font_path, 20)
@@ -102,6 +111,8 @@ while True:
         game.lose_screen()
     elif game.screen_on == "game":
         game.update_aliens()
+        game.draw_stationary_objs()
+        game.check_stationary_obj_bullet_hits()
         game.check_if_level_done()
         game.show_time_taken()
         player.draw()
@@ -115,6 +126,8 @@ while True:
             player.move_right()
     elif game.screen_on == "pause":
         game.update_aliens(move=False)
+        game.draw_stationary_objs()
+        game.check_stationary_obj_bullet_hits()
         game.check_if_level_done()
         game.show_time_taken()
         player.draw()

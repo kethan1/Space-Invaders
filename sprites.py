@@ -164,6 +164,17 @@ class Bullet(Sprite):
         self.y += self.speed
 
 
+class Mirror(Sprite):
+    def check_collision(self, bullet):
+        return self.x <= bullet.x + 20 <= self.x + 50 and self.y <= bullet.y + 20 <= self.y + 50
+
+    def draw(self):
+        self.screen.blit(self.image, (self.x, self.y))
+
+    def copy(self):
+        return Mirror(self.screen, self.x, self.y, self.image, self.CELLSIZE, self.speed)
+
+
 class Game:
     def __init__(self, screen, player, levels, current_level, small_font, medium_font, big_font, bg_image, CELLSIZE=50):
         self.screen = screen
@@ -198,7 +209,12 @@ class Game:
             )
 
         def initial_leaderboard_func():
-            self.top_scores = Leaderboard.get_top_scores(10)
+            self.level_chosen = TkDropdownDialog(root, "Choose Level", [f"Level {n}" for n in range(1, 11)]).dropdown_value
+            if self.level_chosen == None:
+                self.level_chosen = "level1"
+            else:
+                self.level_chosen = f"level{self.level_chosen.split(' ')[-1]}"
+            self.top_scores = Leaderboard.get_top_scores(10, level=self.level_chosen)
             self.leaderboard()
 
         self.level_buttons += [
@@ -257,13 +273,19 @@ class Game:
                 text=f"Sign Up", font=self.small_font,
                 screen=self.screen, x=self.WIDTH / 2 - 125 / 2 - 80,
                 y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) + 75,
-                width=125, height=50, on_click=lambda s=self: s.signup_clicked_func()
+                width=125, height=50, on_click=self.signup_clicked_func
             ),
             DefaultButton(
                 text=f"Login", font=self.small_font,
                 screen=self.screen, x=self.WIDTH / 2 - 125 / 2 + 80,
                 y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) + 75,
-                width=125, height=50, on_click=lambda s=self: s.login_clicked_func()
+                width=125, height=50, on_click=self.login_clicked_func
+            ),
+            DefaultButton(
+                text=f"Sign Out", font=self.small_font,
+                screen=self.screen, x=self.WIDTH / 2 - 125 / 2,
+                y=self.HEIGHT / 2 + (math.floor(index / 5) * 100) + 75,
+                width=125, height=50, on_click=self.sign_out
             )
         ]
 
@@ -282,6 +304,15 @@ class Game:
             )
         ]
 
+    def check_stationary_obj_bullet_hits(self):
+        for stationary_obj in self.current_level_data.stationary_objs:
+            for bullet in self.player.bullets.copy():
+                if stationary_obj.check_collision(bullet):
+                    self.player.bullets.remove(bullet)
+                    alien = next(s for s in self.current_level_data.aliens if s)[0]
+                    alien.bullets.append(Bullet(screen=self.screen, x=bullet.x, y=bullet.y,
+                        image=alien.bullet_image, speed=bullet.speed))
+
     def screen_on_game(self):
         self.screen_on = "game"
 
@@ -290,6 +321,9 @@ class Game:
 
     def login_clicked_func(self):
         self.login_clicked = True
+
+    def sign_out(self):
+        Leaderboard.current_account = None
 
     def refresh_leaderboard(self, amount=10):
         self.top_scores = Leaderboard.get_top_scores(amount)
@@ -314,19 +348,21 @@ class Game:
         top_scores = self.top_scores
         if top_scores:
             for index, (name, score) in enumerate(top_scores):
-                self.show_text(f"{index + 1}. {score} - {name}", y=100 + 35 * index, font=self.medium_font)
-        elif top_scores == {}:
+                self.show_text(f"{index + 1}. {score} - {name}", y=100 + 25 * index, font=self.small_font)
+        elif top_scores == []:
             self.show_text("No Scores Yet", y=100, font=self.medium_font)
         else:
             self.show_text("The Scores Could Not Be Retrieved", y=100, font=self.medium_font)
         if self.signup_clicked:
-            result = TwoTextInputDialog(root, "Username", "Password").get_text()
+            result = ThreeTextInputDialog(root, "Username", "Password", "Confirm Password").get_text()
             finished = False
             while not finished:
                 if result is None:
                     finished = True
-                elif Leaderboard.signup(*result):
-                    result = TwoTextInputDialog(root, "Username", "Password", "An Account With That Username Already Exists").get_text()
+                elif result[1] != result[2]:
+                    result = ThreeTextInputDialog(root, "Username", "Password", "Confirm Password", "Confirm Password Does Not Match Password").get_text()
+                elif Leaderboard.signup(*result[:2]):
+                    result = ThreeTextInputDialog(root, "Username", "Password", "Confirm Password", "An Account With That Username Already Exists").get_text()
                 else:
                     finished = True
                     Leaderboard.current_account = result[0]
@@ -343,8 +379,13 @@ class Game:
                     Leaderboard.current_account = result[0]
                     finished = True
             self.login_clicked = False
-        for button in self.leaderboard_buttons:
-            button.draw()
+        if Leaderboard.current_account is None:
+            for button in self.leaderboard_buttons[:4]:
+                button.draw()
+        else:
+            self.leaderboard_buttons[0].draw()
+            self.leaderboard_buttons[1].draw()
+            self.leaderboard_buttons[4].draw()
 
     def update_aliens(self, move=True):
         already_reversed = False
@@ -382,6 +423,10 @@ class Game:
         if self.player.health <= 0:
             self.screen_on = "lose"
 
+    def draw_stationary_objs(self):
+        for stationary_obj in self.current_level_data.stationary_objs:
+            stationary_obj.draw()
+
     def check_if_level_done(self):
         if sum(map(len, self.current_level_data.aliens)) == 0 and self.screen_on not in ("win", "lose"):
             self.end_level()
@@ -415,13 +460,15 @@ class Game:
                         else:
                             finished = True
                 elif button_clicked == 2:  # Signup
-                    result = TwoTextInputDialog(root, "Username", "Password").get_text()
+                    result = ThreeTextInputDialog(root, "Username", "Password", "Confirm Password").get_text()
                     finished = False
                     while not finished:
                         if result is not None:
-                            signup_result = Leaderboard.signup(*result)
+                            signup_result = Leaderboard.signup(*result[:2])
                             if signup_result:
-                                result = TwoTextInputDialog(root, "Username", "Password", "An Account With That Username Already Exists").get_text()
+                                result = ThreeTextInputDialog(root, "Username", "Password", "Confirm Password", "An Account With That Username Already Exists").get_text()
+                            elif result[1] != result[2]:
+                                result = ThreeTextInputDialog(root, "Username", "Password", "Confirm Password", "Confirm Password Does Not Match Password").get_text()
                             elif signup_result is None:
                                 finished = True
                                 tk.messagebox.showerror(message="Unable to Sign Up. Check That You Are Connected to the Internet.")
@@ -506,20 +553,25 @@ class Game:
         return any(button.check_click(x, y) for button in self.how_to_play_buttons)
 
     def check_leaderboard_buttons(self, x, y):
-        return any(button.check_click(x, y) for button in self.leaderboard_buttons)
+        buttons = self.leaderboard_buttons[:4] if Leaderboard.current_account is None \
+                  else [self.leaderboard_buttons[0], self.leaderboard_buttons[1], self.leaderboard_buttons[4]]
+        return any(button.check_click(x, y) for button in buttons)
 
     def check_pause_buttons(self, x, y):
         return any(button.check_click(x, y) for button in self.pause_buttons)
 
 
 class Level:
-    def __init__(self, aliens, alien_speed):
+    def __init__(self, aliens, stationary_objs, alien_speed):
         self.aliens = [[alien.copy() for alien in row] for row in aliens]
         self.original_aliens = aliens
+        self.stationary_objs = [obj.copy() for obj in stationary_objs]
+        self.stationary_objs_original = stationary_objs
         self.alien_speed = alien_speed
 
     def reset_level(self):
         self.aliens = [[alien.copy() for alien in row] for row in self.original_aliens]
+        self.stationary_objs = [obj.copy() for obj in self.stationary_objs]
 
 
 class Button:
@@ -654,6 +706,54 @@ class TwoTextInputDialog(tk.simpledialog.Dialog):
             return None
 
 
+class ThreeTextInputDialog(tk.simpledialog.Dialog):
+    def __init__(self, master, first_label, second_label, third_label, extra_text=None, title=None):
+        self.first_label = first_label
+        self.second_label = second_label
+        self.third_label = third_label
+        self.master = master
+        self.extra_text = extra_text
+        super().__init__(master, title)
+
+    def body(self, master):
+        tk.Label(master, text=f"{self.first_label}: ").grid(row=0)
+        self.e1 = tk.Entry(master)
+        if self.second_label == "Password":
+            tk.Label(master, text=f"{self.second_label}: ").grid(row=1)
+            self.e2 = tk.Entry(master, show="•")
+        if self.third_label == "Confirm Password":
+            tk.Label(master, text=f"{self.third_label}: ").grid(row=2)
+            self.e3 = tk.Entry(master, show="•")
+        if self.extra_text is not None:
+            tk.Label(master, text=self.extra_text).grid(row=3)
+
+        self.e1.grid(row=0, column=1)
+        self.e2.grid(row=1, column=1)
+        self.e3.grid(row=2, column=1)
+        return self.e1  # initial focus
+
+    def apply(self):
+        first = self.e1.get()
+        second = self.e2.get()
+        third = self.e3.get()
+        self.data = [first, second, third]
+
+    def validate(self):
+        first = self.e1.get()
+        second = self.e2.get()
+        third = self.e3.get()
+        if first and second and third:
+            return 1
+        else:
+            return 0
+
+    def get_text(self):
+        try:
+            return self.data
+        except AttributeError:  # User clicked cancel
+            return None
+
+
 class ThreeButtonInfo(tk.simpledialog.Dialog):
     def __init__(self, master, button1_text, button2_text, button3_text, info=None, title=None):
         self.button1_text = button1_text
@@ -666,7 +766,7 @@ class ThreeButtonInfo(tk.simpledialog.Dialog):
 
     def body(self, master):
         if self.info is not None:
-            tk.Label(master, text=self.info).grid(row=2)
+            tk.Label(master, text=self.info).grid(row=0)
 
         return None  # initial focus
 
@@ -696,3 +796,41 @@ class ThreeButtonInfo(tk.simpledialog.Dialog):
     def button3_clicked(self):
         self.button_clicked = 3
         self.cancel()
+
+
+class TkDropdownDialog(tk.simpledialog.Dialog):
+    def __init__(self, master, dropdown_initial_value, dropdown_options, info=None, title=None):
+        self.dropdown_initial_value = dropdown_initial_value
+        self.dropdown_options = dropdown_options
+        self.dropdown_value = None
+        self.info = info
+        self.master = master
+        super().__init__(master, title)
+
+    def body(self, master):
+        self.dropdown_value_var = tk.StringVar(master)
+        self.dropdown_value_var.set(self.dropdown_initial_value)  # default value
+
+        self.dropdown = tk.OptionMenu(master, self.dropdown_value_var, *self.dropdown_options)
+        self.dropdown.grid(row=0)
+
+        if self.info is not None:
+            tk.Label(master, text=self.info).grid(row=1)
+
+        return self.dropdown  # initial focus
+
+    def buttonbox(self):
+        box = tk.Frame(self)
+
+        w = tk.Button(box, text="Confirm", width=10, command=self.ok, default=tk.ACTIVE)
+        w.pack(side=tk.LEFT, padx=5, pady=5)
+        w = tk.Button(box, text="Cancel", width=10, command=self.cancel)
+        w.pack(side=tk.LEFT, padx=5, pady=5)
+
+        self.bind("<Return>", self.ok)
+        self.bind("<Escape>", self.cancel)
+
+        box.pack()
+
+    def apply(self):
+        self.dropdown_value = self.dropdown_value_var.get()
