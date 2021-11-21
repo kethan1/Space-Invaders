@@ -34,6 +34,14 @@ jobs:
             cp -r assets/ dist/assets/
             mv dist space-invaders-${{ runner.os }}
 
+            if [ "$RUNNER_OS" == "Linux" ]; then
+              zip -r space-invaders-${{ runner.os }}.zip space-invaders-${{ runner.os }}
+            elif [ "$RUNNER_OS" == "Windows" ]; then
+              tar.exe -a -cf space-${{ runner.os }}.zip space-invaders-${{ runner.os }}
+            elif [ "$RUNNER_OS" == "macOS" ]; then
+              zip -r space-invaders-${{ runner.os }}.zip space-invaders-${{ runner.os }}
+            fi
+
       - uses: actions/upload-artifact@v2
         with:
           name: space-invaders-${{ runner.os }}
@@ -43,7 +51,6 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: space-invaders-${{ runner.os }}
+          file: space-invaders-${{ runner.os }}.zip
           tag: ${{ github.ref }}
           overwrite: true
-          file_glob: true
