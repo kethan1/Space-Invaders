@@ -1,7 +1,6 @@
 import sys
 import os
 import time
-from playsound import playsound
 import natsort
 import pygame
 from pygame.locals import *
