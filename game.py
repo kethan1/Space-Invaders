@@ -1,5 +1,7 @@
 import sys
 import os
+import time
+from playsound import playsound
 import natsort
 import pygame
 from pygame.locals import *
@@ -33,6 +35,9 @@ mirror_image = load_img("assets/images/mirror.png").convert_alpha()
 background = pygame.image.load("assets/images/background.png").convert_alpha()
 icon = pygame.image.load("assets/icon.png")
 font_path = "assets/Segoe-UI-Variable-Static-Display.ttf"
+
+shoot_sound = pygame.mixer.Sound("assets/sounds/shoot.wav")
+shoot_sound.set_volume(0.01)
 
 pygame.display.set_icon(icon)
 
@@ -144,6 +149,7 @@ while True:
                 game.check_menu_buttons(*pygame.mouse.get_pos())
             elif game.screen_on == "game":
                 player.shoot()
+                shoot_sound.play()
             elif game.screen_on in ("win", "lose"):
                 game.check_gameover_buttons(*pygame.mouse.get_pos())
             elif game.screen_on == "how_to_play":
@@ -156,6 +162,7 @@ while True:
             if event.key == K_SPACE:
                 if game.screen_on == "game":
                     player.shoot()
+                    shoot_sound.play()
             elif event.key == K_ESCAPE:
                 if game.screen_on == "game":
                     game.pause_game()
