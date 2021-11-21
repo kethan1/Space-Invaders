@@ -209,7 +209,7 @@ class Game:
             )
 
         def initial_leaderboard_func():
-            self.level_chosen = TkDropdownDialog(root, "Choose Level", [f"Level {n}" for n in range(1, 11)]).dropdown_value
+            self.level_chosen = TkDropdownDialog(root, "Choose Level", [f"Level {n}" for n in range(1, 8)]).dropdown_value
             if self.level_chosen == None:
                 self.level_chosen = "level1"
             else:
