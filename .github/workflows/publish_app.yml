@@ -37,7 +37,7 @@ jobs:
             if [ "$RUNNER_OS" == "Linux" ]; then
               zip -r space-invaders-${{ runner.os }}.zip space-invaders-${{ runner.os }}
             elif [ "$RUNNER_OS" == "Windows" ]; then
-              tar.exe -a -cf space-${{ runner.os }}.zip space-invaders-${{ runner.os }}
+              tar.exe -a -cf space-invaders-${{ runner.os }}.zip space-invaders-${{ runner.os }}
             elif [ "$RUNNER_OS" == "macOS" ]; then
               zip -r space-invaders-${{ runner.os }}.zip space-invaders-${{ runner.os }}
             fi
