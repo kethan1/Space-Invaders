@@ -23,7 +23,7 @@ mongo = PyMongo(app)
 @app.route("/get_scores", methods=["POST"])
 def get_scores():
     level = request.json["level"]
-    amount = request.json["amount"]
+    amount = int(request.json["amount"])
 
     from_database = list(getattr(mongo.db, level).find())
     output = [[k, v] for d in from_database for k, v in d.items() if k != "_id"]
