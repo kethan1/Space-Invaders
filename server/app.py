@@ -12,7 +12,6 @@ app = Flask(__name__)
 app.config["MONGO_URI"] = f"mongodb+srv://{os.environ['user']}:{os.environ['password']}@full-stack-web-developm.m7o9n.mongodb.net/space-invaders-top-scores?retryWrites=true&w=majority"
 mongo = PyMongo(app)
 
-
 # @app.before_request
 # def before_request():
 #     if 'DYNO' in os.environ and request.url.startswith('http://'):
